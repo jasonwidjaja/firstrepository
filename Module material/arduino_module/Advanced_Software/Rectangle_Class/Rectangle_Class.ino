@@ -1,3 +1,4 @@
+
 // Rectangle Example Class
 class Rectangle {
     // Private variables that can only be accessed within the class
