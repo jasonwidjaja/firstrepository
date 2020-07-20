@@ -14,8 +14,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  float accelY = IMU.get_accel('y');
-  float servoPos = 90 + (accelY * 90);
+  float accelX = IMU.get_accel('x');
+  float servoPos = 90 + (accelX * 90);
   IMU.update();
   servo.write(servoPos);
 }
