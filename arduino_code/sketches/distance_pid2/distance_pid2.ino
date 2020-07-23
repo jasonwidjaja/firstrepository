@@ -1,75 +1,50 @@
-#include <HC_SR04.h>
-#include <PID_v1.h>
 #include <motor_control.h>
-#include <Servo.h>
 #include <MPU6050.h>
+#include <State.h>
 
 //Global Variables
-#define TRIG_PIN 10
-#define ECHO_PIN 2
-#define ECHO_INT 0
+#define SDA 4
+#define SDA 5
+#define MPU6050_ADDRESS 0*68;
 
-HC_SR04 sensor(TRIG_PIN, ECHO_PIN, ECHO_INT);
-Servo actuator;
-MPU6050 IMU(4,5);
+MPU6050 sensor(SDA,SCL);
 
-double base_motor_speed = 150;
-double setpoint = 5;
-float input;
+#include <PID_v1.h>
+double base_motor_speed = 140;
+double setpoint = 0;
+double input;
 double output;
-double kp = 20;
-double ki = 0;
-double kd = 0;
-double switch_time = millis();
-double accelX = input/(switch_time * switch_time);
-PID controller(&input, &output, &setpoint, kp, ki, kd, REVERSE);
+double kp = 3.5;
+double ki = 0.5;
+double kd = 0.04;
 
+
+PID controller(&input, &output, &setpoint, kp, ki, kd, AUTOMATIC);
+State controller_state;
 
 void setup() {
-  //setup motors
-  motor_setup();
+ Serial.begin(9600);
+ sensor.initialize();
+ sensor.update();
 
-  IMU.initialize();
-  IMU.calibrate();
-  
-  //setup servo and point forward
-  actuator.attach(9);
-  actuator.write(90);
+ controller.SetOutputLimits(-200,200);
+ controller.SetSampleTime(50);
+ controller.SetMode(1);
 
-  //initialize distance sensor
-  sensor.begin();
-  sensor.start();
-
-  //Set PID parameters
-  controller.SetOutputLimits(-130, 130);
-  controller.SetSampleTime(30);
-  controller.SetMode(1);
-
-  //begin serial for debugging
-  Serial.begin(9600);
+ controller_state.setLinearState(150);
+ controller_state.setRotationState(90);
 }
 
 void loop() {
-  // get distance value from sensor, update input to be distance value
-  if(sensor.isFinished())
-  {
-    input = sensor.get_ang_vel('z');
-    sensor.start(); // restart sensor
-  }
-  if(millis() > switch_time + 1000)
-  {
-    setpoint *= -1;
-  }
-  
-  
-  //compute PID controller once input has been updated
+  sensor.update();
+  input = sensor.get_ang_vel('z');
+
   controller.Compute();
+  //controller_state.setLinearState(controller_state.getLinearState() * -1);
+  //raw_motor_control(base_motor_speed + output + 50 , base_motor_speed - output);
+  raw_motor_control(controller_state.getLinearState() + output, controller_state.getLinearState() - output);
+  //Serial.println(controller_state.getLinearState());
+  //Serial.print("output: "); 
+  //Serial.println(output);
   
-  //set motor power based on output from PID controller
-  raw_motor_control(base_motor_speed + output,base_motor_speed - output);//use scale factor if drifts left, increase left
-  
-  Serial.print("output: "); 
-  Serial.print(output);
-  Serial.print(" distance: ");
-  Serial.println(input);
 }

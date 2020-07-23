@@ -3,22 +3,20 @@
 #include <motor_control.h>
 #include <Servo.h>
 
-//Global Variables
 #define TRIG_PIN 10
 #define ECHO_PIN 2
 #define ECHO_INT 0
 
+
 HC_SR04 sensor(TRIG_PIN, ECHO_PIN, ECHO_INT);
 Servo actuator;
 
-double setpoint = 5;
+double setpoint = 10;
 double input;
 double output;
 double kp = 50;
 double ki = 0;
 double kd = 3;
-double switch_time = millis();
-double accelX = input/(switch_time * switch_time);
 PID controller(&input, &output, &setpoint, kp, ki, kd, REVERSE);
 
 
@@ -36,7 +34,7 @@ void setup() {
   sensor.start();
 
   //Set PID parameters
-  controller.SetOutputLimits(-250, 250);
+  controller.SetOutputLimits(-200, 200);
   controller.SetSampleTime(30);
   controller.SetMode(1);
 
@@ -51,17 +49,13 @@ void loop() {
     input = sensor.getRange();
     sensor.start(); // restart sensor
   }
-  if(millis() > switch_time + 1000)
-  {
-    setpoint *= -1;
-  }
   
   
   //compute PID controller once input has been updated
   controller.Compute();
   
   //set motor power based on output from PID controller
-  raw_motor_control(output,output );//use scale factor if drifts left, increase left
+  raw_motor_control(output,output * 0.85 );//use scale factor if drifts left, increase left
   
   Serial.print("output: "); 
   Serial.print(output);
